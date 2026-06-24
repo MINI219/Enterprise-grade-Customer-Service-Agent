@@ -1,0 +1,21 @@
+fastapi>=0.115.0
+uvicorn[standard]==0.34.0
+pydantic==2.10.3
+loguru==0.7.3
+httpx==0.28.1
+python-multipart==0.0.19
+
+# LLM & Agent
+langchain==0.3.14
+langchain-openai==0.3.0
+langchain-core==0.3.29
+
+# RAG（检索增强生成）
+faiss-cpu==1.14.3
+sentence-transformers==3.4.1
+langchain-community==0.3.14
+markdown==3.10.2
+
+# MCP（Model Context Protocol）
+mcp>=1.28.0
+sse-starlette>=3.4.0
