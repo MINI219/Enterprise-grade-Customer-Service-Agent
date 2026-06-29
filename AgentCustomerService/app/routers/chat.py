@@ -70,7 +70,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             raise HTTPException(status_code=422, detail="user_id 不能为空")
 
         # ── 调用 Agent ──
-        reply, conv_id = run_agent(
+        reply, conv_id = await run_agent(
             message=request.message.strip(),
             user_id=request.user_id.strip(),
             conversation_id=request.conversation_id,

@@ -1,0 +1,51 @@
+# =============================================================================
+# ChromaDB 向量数据库 — Docker 独立部署
+#
+# 用途：为智能客服 Agent 系统提供向量存储与语义检索服务。
+# 架构：Client/Server 模式，Python 后端通过 HTTP API 连接，不阻塞事件循环。
+#
+# 启动：  docker compose up -d
+# 停止：  docker compose down
+# 查看日志：docker compose logs -f chromadb
+# 心跳检查：curl http://localhost:8001/api/v2/heartbeat
+# =============================================================================
+
+services:
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: agent-chromadb
+    restart: unless-stopped
+
+    ports:
+      - "${CHROMA_PORT:-8001}:8000"          # host:container，默认 8001→8000
+
+    volumes:
+      - chroma_data:/chroma/chroma            # 向量数据持久化
+      # 如需自定义配置可挂载环境变量文件
+      # - ./.env.chromadb:/chroma/.chroma_env:ro
+
+    environment:
+      # 安全配置：默认无认证（仅本地开发）；生产环境请在 .env 中设置 CHROMA_AUTH_CREDENTIALS
+      # 当 CHROMA_AUTH_CREDENTIALS 非空时，自动启用 Token 认证
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE           # 关闭遥测
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - agent_network
+
+volumes:
+  chroma_data:
+    driver: local
+    name: agent_chroma_data
+
+networks:
+  agent_network:
+    driver: bridge
+    name: agent_network

@@ -23,7 +23,8 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 
 from app.core.logger import logger
 from tools.agent_tools import AGENT_TOOLS
-from agent.memory_manager import get_user_facts
+from agent.memory_manager import get_user_facts, get_user_facts_raw
+from rag.retriever import set_current_profile
 
 # ── DeepSeek API 配置 ─────────────────────────────────────
 # 通过环境变量注入，支持 .env 文件
@@ -152,7 +153,7 @@ FALLBACK_REPLIES = [
 ]
 
 
-def run_agent(
+async def run_agent(
     message: str,
     user_id: str,
     conversation_id: Optional[str] = None,
@@ -170,6 +171,11 @@ def run_agent(
 
         成功时 reply_text 为 Agent 的自然语言回复；
         失败时 reply_text 为友好的兜底话术。
+
+    ChromaDB 集成：
+      在执行 Agent 前，从 SQLite 读取用户画像原始 dict 并设置到
+      rag.retriever 的请求级上下文，供 search_faq() 的
+      metadata 过滤使用。
     """
     import random
     import uuid
@@ -205,9 +211,19 @@ def run_agent(
         "chat_history": session.messages,
     }
 
+    # ── 设置 ChromaDB 元数据过滤上下文 ──
+    # 从 SQLite 读取画像的原始 dict，用于构建 ChromaDB where 过滤条件
+    profile_dict = get_user_facts_raw(user_id)
+    set_current_profile(profile_dict)
+    if profile_dict:
+        logger.info(
+            f"[Agent] 已设置 ChromaDB 过滤上下文 | profile={profile_dict}"
+        )
+
     try:
         executor = get_agent()
-        result = executor.invoke(agent_input)
+        # 使用 ainvoke（异步），避免阻塞事件循环
+        result = await executor.ainvoke(agent_input)
 
         reply = result.get("output", "").strip()
 
@@ -243,6 +259,10 @@ def run_agent(
         session.add_message(AIMessage(content=fallback))
 
         return fallback, conversation_id
+
+    finally:
+        # 清理 ChromaDB 过滤上下文
+        set_current_profile(None)
 
 
 def clear_session(conversation_id: str) -> bool:

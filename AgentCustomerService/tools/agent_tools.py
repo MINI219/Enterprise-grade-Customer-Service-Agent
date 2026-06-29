@@ -133,7 +133,7 @@ def query_complaint(user_id: str) -> str:
 
 
 @tool(args_schema=KnowledgeBaseInput)
-def search_knowledge_base(query: str) -> str:
+async def search_knowledge_base(query: str) -> str:
     """
     检索公司内部知识库，查询退换货政策、发票规则、会员制度、物流条款等通用业务规定。
 
@@ -147,10 +147,13 @@ def search_knowledge_base(query: str) -> str:
 
     只有当用户的问题明确属于以上业务规则类问题时才调用此工具。
     如果用户问的是具体的订单、物流单号、个人投诉，请使用对应的 query_* 工具。
+
+    💡 此工具会自动读取当前用户的画像数据（如会员等级、偏好等），
+       优先检索与该用户相关的业务规则后再进行语义匹配。
     """
     logger.info(f"[Tool] search_knowledge_base 被调用 | query={query[:120]}")
     try:
-        result = search_faq(query)
+        result = await search_faq(query)
         logger.info(f"[Tool] search_knowledge_base 完成")
         return result
     except Exception as exc:

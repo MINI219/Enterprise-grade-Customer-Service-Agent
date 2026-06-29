@@ -17,7 +17,19 @@ from app.routers.mcp_router import router as mcp_router
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     logger.info("[App] ========== 智能客服 Agent 服务启动 ==========")
+
+    # ── 初始化 ChromaDB 向量存储服务 ──
+    from rag.retriever import VectorStoreService
+    try:
+        vs = VectorStoreService.get_instance()
+        await vs.initialize()
+        logger.info("[App] ChromaDB 向量存储服务初始化完成")
+    except Exception as exc:
+        logger.error(f"[App] ChromaDB 初始化失败（服务仍可启动，RAG 功能暂不可用）: {exc}")
+        # 不阻断启动 —— RAG 不可用时 Agent 仍可回答其他问题
+
     yield
+
     logger.info("[App] ========== 智能客服 Agent 服务关闭 ==========")
 
 

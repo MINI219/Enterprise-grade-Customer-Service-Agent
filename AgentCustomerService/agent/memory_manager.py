@@ -12,7 +12,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -92,6 +92,31 @@ def get_user_facts(user_id: str) -> Optional[str]:
     Returns:
         格式化的自然语言画像描述，无记忆时返回 None
     """
+    facts_dict = get_user_facts_raw(user_id)
+    if not facts_dict:
+        return None
+
+    lines = []
+    for key, value in facts_dict.items():
+        lines.append(f"- {key}: {value}")
+
+    logger.info(f"[Memory] 读取用户画像 | user_id={user_id} | fields={len(lines)}")
+    return "\n".join(lines)
+
+
+def get_user_facts_raw(user_id: str) -> Optional[Dict[str, Any]]:
+    """
+    查询用户的长期记忆 / 画像（原始 dict 格式）。
+
+    供 ChromaDB metadata 过滤使用 —— 需要结构化的 key-value。
+
+    Args:
+        user_id: 用户 ID
+
+    Returns:
+        画像 dict，如 {"card_type": "times_card", "level": "gold"}
+        无记忆时返回 None
+    """
     try:
         conn = _get_connection()
         row = conn.execute(
@@ -111,13 +136,7 @@ def get_user_facts(user_id: str) -> Optional[str]:
         if not facts_dict:
             return None
 
-        # 转为自然语言列表
-        lines = []
-        for key, value in facts_dict.items():
-            lines.append(f"- {key}: {value}")
-
-        logger.info(f"[Memory] 读取用户画像 | user_id={user_id} | fields={len(lines)}")
-        return "\n".join(lines)
+        return facts_dict
 
     except Exception as exc:
         logger.error(f"[Memory] 读取记忆失败 | user_id={user_id} | error={exc}")

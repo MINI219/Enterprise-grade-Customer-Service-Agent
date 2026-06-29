@@ -102,7 +102,7 @@ def query_complaint(user_id: str) -> str:
 
 
 @mcp.tool()
-def search_knowledge_base(query: str) -> str:
+async def search_knowledge_base(query: str) -> str:
     """
     检索公司内部知识库，查询退换货政策、发票规则、会员制度、物流条款等通用业务规定。
 
@@ -120,7 +120,7 @@ def search_knowledge_base(query: str) -> str:
     """
     logger.info(f"[MCP] Tool: search_knowledge_base | query={query[:120]}")
     try:
-        result = search_faq(query)
+        result = await search_faq(query)
         logger.info("[MCP] search_knowledge_base 完成")
         return result
     except Exception as exc:
